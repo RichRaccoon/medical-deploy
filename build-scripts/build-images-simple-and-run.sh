@@ -12,6 +12,7 @@ function build_basic_images() {
 
 function build_jar() {
   # Get count of args
+# shellcheck disable=SC2068
 for var in $@
   do
     DIR=$var
@@ -25,6 +26,7 @@ for var in $@
 
 function build_lib() {
   # Get count of args
+# shellcheck disable=SC2068
 for var in $@
   do
     DIR=$var
@@ -42,11 +44,11 @@ function pull_or_clone_proj() {
  if cd ${SERVICE_NAME}
   then
  #  git branch -f master origin/master
-   git checkout master
+   git checkout develop
    git pull
    cd ..
   else
-    git clone --branch master ${SERVICE_URL} ${SERVICE_NAME}
+    git clone --branch develop ${SERVICE_URL} ${SERVICE_NAME}
  fi
 }
 
@@ -54,13 +56,14 @@ function pull_or_clone_proj() {
 cd ..
 
 # Clone or update projects
-pull_or_clone_proj common-module https://github.com/stazhirovka2022/common-module.git
-pull_or_clone_proj medical-monitoring https://github.com/stazhirovka2022/medical-monitoring.git
-pull_or_clone_proj message-analyzer https://github.com/stazhirovka2022/message-analyzer.git
-pull_or_clone_proj person-service https://github.com/stazhirovka2022/person-service.git
+pull_or_clone_proj common-module https://github.com/RichRaccoon/common-module.git
+pull_or_clone_proj medical-monitoring https://github.com/RichRaccoon/liga-medical-clinic.git
+pull_or_clone_proj message-analyzer https://github.com/RichRaccoon/message-analyzer.git
+pull_or_clone_proj person-service https://github.com/RichRaccoon/person-service.git
+pull_or_clone_proj message-consumer https://github.com/RichRaccoon/medical-message-consumer.git
 
 build_lib common-module
-build_jar medical-monitoring message-analyzer person-service
+build_jar medical-monitoring message-analyzer person-service message-consumer
 
 
 APP_VERSION=0.0.1-SNAPSHOT
@@ -69,3 +72,8 @@ echo "Building Docker images"
 build_basic_images ./medical-monitoring/core/target/medical-monitoring-${APP_VERSION}.jar application/medical-monitoring
 build_basic_images ./message-analyzer/core/target/message-analyzer-${APP_VERSION}.jar application/message-analyzer
 build_basic_images ./person-service/core/target/person-service-${APP_VERSION}.jar application/person-service
+build_basic_images ./message-consumer/target/message-consumer-${APP_VERSION}.jar application/message-consumer
+
+# shellcheck disable=SC2164
+cd build-scripts/compose/simple
+docker-compose up -d

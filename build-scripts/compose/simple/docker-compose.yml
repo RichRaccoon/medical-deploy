@@ -1,32 +1,49 @@
 version: '2.4'
 
 services:
+  rabbitmq:
+    hostname: 'rabbit'
+    image: rabbitmq:3.10-management
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
   message-analyzer:
     image: application/message-analyzer:simple
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 20s
+      interval: 40s
       timeout: 10s
       retries: 3
     environment:
       SERVER_PORT: 8080
     ports:
-      - 8092:8080
+      - "8092:8080"
 
   medical-monitoring:
     image: application/medical-monitoring:simple
     depends_on:
       message-analyzer:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 20s
+      interval: 40s
       timeout: 10s
       retries: 3
     environment:
       SERVER_PORT: 8080
     ports:
-      - 8093:8080
+      - "8093:8080"
 
   person-service:
     image: application/person-service:simple
@@ -34,6 +51,8 @@ services:
       message-analyzer:
         condition: service_healthy
       medical-monitoring:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 #    healthcheck:
 #      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
@@ -43,4 +62,16 @@ services:
     environment:
       SERVER_PORT: 8080
     ports:
-      - 8091:8080
+      - "8091:8080"
+
+  message-consumer:
+    image: application/message-consumer:simple
+    depends_on:
+      message-analyzer:
+        condition: service_healthy
+      medical-monitoring:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8094:8080"
